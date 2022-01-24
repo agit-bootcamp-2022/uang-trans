@@ -17,8 +17,6 @@ namespace uang_trans.Models
         public string LastName { get; set; }
         public string Email { get; set; }
         public DateTime CreatedDate { get; set; }
-        public string Password { get; set; }
-        public bool isLock { get; set; }
 
         public Wallet Wallet { get; set; }
     }
