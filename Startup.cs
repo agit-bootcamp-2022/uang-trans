@@ -1,24 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using uang_trans.GraphQL;
-using uang_trans.Helpers;
 using uang_trans.Models;
+using uang_trans.Helpers;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace uang_trans
 {
@@ -37,7 +30,6 @@ namespace uang_trans
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
             if (_env.IsProduction())
             {
                 Console.WriteLine("--> using Sql server Db");
@@ -52,21 +44,20 @@ namespace uang_trans
                   (options => options.UseSqlServer(Configuration.GetConnectionString("DbConn")));
             }
 
+            services
+                .AddGraphQLServer()
+                .AddQueryType<Query>()
+                 .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = _env.IsDevelopment());
 
-
-            // services
-            // .AddGraphQLServer();
-            // .AddQueryType<Query>()
-            // .AddMutationType<Mutation>();
 
             services.AddIdentity<IdentityUser, IdentityRole>(options =>
-           {
-               options.Password.RequiredLength = 8;
-               options.Password.RequireLowercase = true;
-               options.Password.RequireUppercase = true;
-               options.Password.RequireNonAlphanumeric = true;
-               options.Password.RequireDigit = true;
-           }).AddDefaultTokenProviders().AddEntityFrameworkStores<AppDbContext>();
+          {
+              options.Password.RequiredLength = 8;
+              options.Password.RequireLowercase = true;
+              options.Password.RequireUppercase = true;
+              options.Password.RequireNonAlphanumeric = true;
+              options.Password.RequireDigit = true;
+          }).AddDefaultTokenProviders().AddEntityFrameworkStores<AppDbContext>();
 
             var appSettingsSection = Configuration.GetSection("AppSettings");
             services.Configure<AppSettings>(appSettingsSection);
@@ -89,15 +80,6 @@ namespace uang_trans
                     ValidateAudience = false
                 };
             });
-
-            services.AddControllers().AddNewtonsoftJson(options =>
-             options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
-
-
-
-            services.AddControllers();
-
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -106,23 +88,14 @@ namespace uang_trans
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-
             }
-
-            app.UseHttpsRedirection();
 
             app.UseRouting();
 
-            app.UseAuthorization();
-
             app.UseEndpoints(endpoints =>
-           {
-               endpoints.MapGraphQL();
-               endpoints.MapGet("/", async context =>
-               {
-                   await context.Response.WriteAsync("Hello World!");
-               });
-           });
+            {
+                endpoints.MapGraphQL();
+            });
         }
     }
 }
