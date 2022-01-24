@@ -215,10 +215,12 @@ namespace uang_trans.Migrations
                     b.ToTable("AspNetUserTokens");
                 });
 
-            modelBuilder.Entity("uang_trans.Models.User", b =>
+            modelBuilder.Entity("uang_trans.Models.Customer", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
@@ -235,26 +237,18 @@ namespace uang_trans.Migrations
                     b.Property<string>("Password")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UserExternalId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Username")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("WalletId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("WalletId1")
-                        .HasColumnType("int");
 
                     b.Property<bool>("isLock")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WalletId1");
-
-                    b.ToTable("Users");
+                    b.ToTable("Customers");
                 });
 
             modelBuilder.Entity("uang_trans.Models.Wallet", b =>
@@ -270,10 +264,13 @@ namespace uang_trans.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerId")
+                        .IsUnique();
 
                     b.ToTable("Wallets");
                 });
@@ -352,22 +349,31 @@ namespace uang_trans.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("uang_trans.Models.User", b =>
+            modelBuilder.Entity("uang_trans.Models.Wallet", b =>
                 {
-                    b.HasOne("uang_trans.Models.Wallet", "Wallet")
-                        .WithMany()
-                        .HasForeignKey("WalletId1");
+                    b.HasOne("uang_trans.Models.Customer", "Customer")
+                        .WithOne("Wallet")
+                        .HasForeignKey("uang_trans.Models.Wallet", "CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Wallet");
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("uang_trans.Models.WalletMutation", b =>
                 {
-                    b.HasOne("uang_trans.Models.Wallet", null)
+                    b.HasOne("uang_trans.Models.Wallet", "Wallet")
                         .WithMany("WalletMutations")
                         .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("uang_trans.Models.Customer", b =>
+                {
+                    b.Navigation("Wallet");
                 });
 
             modelBuilder.Entity("uang_trans.Models.Wallet", b =>

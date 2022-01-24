@@ -14,9 +14,10 @@ namespace uang_trans.Models
 
         }
 
-        public DbSet<User> Users { get; set; }
+        public DbSet<Customer> Customers { get; set; }
         public DbSet<Wallet> Wallets { get; set; }
         public DbSet<WalletMutation> WalletMutations { get; set; }
 
     }
+
 }

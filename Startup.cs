@@ -54,10 +54,10 @@ namespace uang_trans
 
 
 
-            services
-            .AddGraphQLServer()
-            .AddQueryType<Query>()
-            .AddMutationType<Mutation>();
+            // services
+            // .AddGraphQLServer();
+            // .AddQueryType<Query>()
+            // .AddMutationType<Mutation>();
 
             services.AddIdentity<IdentityUser, IdentityRole>(options =>
            {
