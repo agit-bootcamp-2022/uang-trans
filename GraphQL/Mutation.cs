@@ -18,6 +18,7 @@ using uang_trans.Input.User;
 using uang_trans.Input.Profile;
 using uang_trans.Models;
 using AutoMapper;
+using uang_trans.Input.Wallet;
 // using System.IdentityModel.Tokens.Jwt;
 
 namespace uang_trans.GraphQL
@@ -111,9 +112,17 @@ namespace uang_trans.GraphQL
             return (new ProfileResult(Message: $"Update profile for Id {customer.Id} success", Data: data));
         }
 
-        public async Task<WalletBalance> UpdateWallet([Service] AppDbContext context, WalletInput input)
+        public async Task<WalletBalance> UpdateWalletAsync([Service] AppDbContext context, WalletInput input)
         {
+            var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            var wallet = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
 
+            if (wallet == null) return new WalletBalance(0);
+
+            wallet.Balance = input.Balance;
+            await context.SaveChangesAsync();
+
+            return new WalletBalance(wallet.Balance);
         }
     }
 }
