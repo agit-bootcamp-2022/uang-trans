@@ -62,6 +62,9 @@ namespace uang_trans
 
             var appSettingsSection = Configuration.GetSection("AppSettings");
             services.Configure<AppSettings>(appSettingsSection);
+            var tokenSettingsSection = Configuration.GetSection("TokenSettings");
+            services.Configure<TokenSettings>(tokenSettingsSection);
+            
             var appSettings = appSettingsSection.Get<AppSettings>();
             var key = Encoding.ASCII.GetBytes(appSettings.Secret);
             services.AddAuthentication(x =>
