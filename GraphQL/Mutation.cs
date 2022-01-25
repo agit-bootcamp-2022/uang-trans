@@ -109,5 +109,10 @@ namespace uang_trans.GraphQL
 
             return (new ProfileResult(Message: $"Update profile for Id {customer.Id} success", Data: data));
         }
+
+        public async Task<WalletBalance> UpdateWallet([Service] AppDbContext context, WalletInput input)
+        {
+
+        }
     }
 }
