@@ -7,7 +7,6 @@ namespace uang_trans.Input.Profile
 {
     public record ProfileInput
     (
-        int Id,
         string Username,
         string FirstName,
         string LastName,

@@ -93,7 +93,8 @@ namespace uang_trans.GraphQL
 
         public async Task<ProfileResult> UpdateProfileAsync([Service] AppDbContext context, ProfileInput input)
         {
-            var customer = await context.Customers.Where(cust => cust.Id == input.Id).SingleOrDefaultAsync();
+            var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            var customer = await context.Customers.Where(cust => cust.Id == Convert.ToInt32(custId)).SingleOrDefaultAsync();
             if (customer == null)
             {
                 return await Task.FromResult(new ProfileResult("Profile not Found", null));
