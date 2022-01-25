@@ -99,7 +99,7 @@ namespace uang_trans.GraphQL
             {
                 return await Task.FromResult(new ProfileResult("Profile not Found", null));
             }
-            customer.Username = input.Username;
+
             customer.FirstName = input.FirstName;
             customer.LastName = input.LastName;
             customer.Email = input.Email;
