@@ -47,7 +47,8 @@ namespace uang_trans
             services
                 .AddGraphQLServer()
                 .AddQueryType<Query>()
-                 .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = _env.IsDevelopment());
+                .AddMutationType<Mutation>()
+                .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = _env.IsDevelopment());
 
 
             services.AddIdentity<IdentityUser, IdentityRole>(options =>

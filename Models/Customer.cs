@@ -11,7 +11,6 @@ namespace uang_trans.Models
     {
         [Key]
         public int Id { get; set; }
-        public int UserExternalId { get; set; }
         public string Username { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
