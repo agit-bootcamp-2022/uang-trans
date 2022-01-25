@@ -7,7 +7,8 @@ namespace uang_trans.Input
 {
     public record Register
     (
-       string FullName,
+       string FirstName,
+       string LastName,
        string Email,
        string Username,
        string Password
