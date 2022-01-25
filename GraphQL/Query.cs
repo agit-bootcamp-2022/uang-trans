@@ -8,5 +8,8 @@ namespace uang_trans.GraphQL
     {
         public IQueryable<Customer> GetCustomersAsync([Service] AppDbContext context) =>
          context.Customers;
+
+        public IQueryable<WalletMutation> GetTransactionsAsync([Service] AppDbContext context) =>
+         context.WalletMutations;
     }
 }
