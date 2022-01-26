@@ -34,5 +34,8 @@ namespace uang_trans.GraphQL
 
             return lstRole;
         }
+
+        public IQueryable<WalletMutation> GetWalletMutationAsync([Service] AppDbContext context) =>
+            context.WalletMutations;
     }
 }
