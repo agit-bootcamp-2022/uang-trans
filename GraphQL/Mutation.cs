@@ -36,7 +36,7 @@ namespace uang_trans.GraphQL
             _mapper = mapper;
         }
 
-        public async Task<Register> RegisterUserAsync([Service] AppDbContext context,
+        public async Task<TransactionStatus> RegisterUserAsync([Service] AppDbContext context,
                                                       [Service] UserManager<IdentityUser> userManager,
                                                       Register input)
         {
@@ -77,7 +77,7 @@ namespace uang_trans.GraphQL
 
                 context.Customers.Add(userEntity);
                 await context.SaveChangesAsync();
-                return input;
+                return await Task.FromResult(new TransactionStatus(true, "Add User Success"));
             }
             catch (Exception ex)
             {
@@ -85,6 +85,7 @@ namespace uang_trans.GraphQL
             }
         }
 
+        // [Authorize(Roles = new [] {"Admin"})]
         public async Task<AddRoleToUser> AddToRoleAsync([Service] AppDbContext context,
                                          [Service] UserManager<IdentityUser> userManager,
                                          AddRoleToUser input)
@@ -203,5 +204,26 @@ namespace uang_trans.GraphQL
             return new WalletBalance(wallet.Balance);
         }
 
+        public async Task<TransactionStatus> LockUserAsync([Service] AppDbContext context,
+                                                           [Service] UserManager<IdentityUser> userManager,
+                                                           LockUser input)
+        {
+            var user = await userManager.FindByNameAsync(input.Username);
+    
+            await userManager.SetLockoutEnabledAsync(user, true);
+
+            return await Task.FromResult(new TransactionStatus(true, "Lock User Success"));
+        }
+
+        public async Task<TransactionStatus> UnlockUserAsync([Service] AppDbContext context,
+                                                             [Service] UserManager<IdentityUser> userManager,
+                                                             LockUser input)
+        {
+            var user = await userManager.FindByNameAsync(input.Username);
+
+            await userManager.SetLockoutEnabledAsync(user, false);
+
+            return await Task.FromResult(new TransactionStatus(true, "Unlock User Success"));
+        }
     }
 }
