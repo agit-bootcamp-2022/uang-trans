@@ -16,7 +16,11 @@ using Microsoft.IdentityModel.Tokens;
 using uang_trans.Input;
 using uang_trans.Input.Role;
 using uang_trans.Input.User;
+using uang_trans.Input.Profile;
 using uang_trans.Models;
+using AutoMapper;
+using uang_trans.Input.Wallet;
+
 // using System.IdentityModel.Tokens.Jwt;
 
 namespace uang_trans.GraphQL
@@ -24,10 +28,12 @@ namespace uang_trans.GraphQL
     public class Mutation
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IMapper _mapper;
 
-        public Mutation(IHttpContextAccessor httpContextAccessor)
+        public Mutation(IHttpContextAccessor httpContextAccessor, IMapper mapper)
         {
             _httpContextAccessor = httpContextAccessor;
+            _mapper = mapper;
         }
 
         public async Task<Register> RegisterUserAsync([Service] AppDbContext context,
@@ -98,26 +104,26 @@ namespace uang_trans.GraphQL
                 throw new Exception(ex.Message);
             }
         }
-
-        public async Task<UserToken> LoginUserAsync([Service] AppDbContext context, 
-                                                    [Service] IOptions<TokenSettings> tokenSettings, 
+        
+        public async Task<UserToken> LoginUserAsync([Service] AppDbContext context,
+                                                    [Service] IOptions<TokenSettings> tokenSettings,
                                                     [Service] UserManager<IdentityUser> userManager,
-                                                    LoginUserInput input) 
+                                                    LoginUserInput input)
         {
             var identityUser = await userManager.FindByNameAsync(input.Username);
             var userFind = await userManager.CheckPasswordAsync(identityUser, input.Password);
-            if(!userFind)
+            if (!userFind)
                 return null;
-            var user = await context.Customers.Where(u=> u.Username == input.Username).SingleOrDefaultAsync();
+            var user = await context.Customers.Where(u => u.Username == input.Username).SingleOrDefaultAsync();
             List<Claim> claims = new List<Claim>();
             claims.Add(new Claim("Id", user.Id.ToString()));
             var roles = await userManager.GetRolesAsync(identityUser);
 
-            foreach(var role in roles)
+            foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
-            
+
             var securitykey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.Value.Key));
             var credentials = new SigningCredentials(securitykey, SecurityAlgorithms.HmacSha256);
 
@@ -126,7 +132,7 @@ namespace uang_trans.GraphQL
             var jwtToken = new JwtSecurityToken(
                 issuer: tokenSettings.Value.Issuer,
                 audience: tokenSettings.Value.Audience,
-                expires: expired,   
+                expires: expired,
                 claims: claims,
                 signingCredentials: credentials
             );
@@ -136,11 +142,11 @@ namespace uang_trans.GraphQL
 
         // [Authorize(Roles = new [] {"Admin"})]
         public async Task<TransactionStatus> CreateRoleAsync([Service] AppDbContext context,
-                                                             [Service] RoleManager<IdentityRole> roleManager, 
+                                                             [Service] RoleManager<IdentityRole> roleManager,
                                                              CreateRoleInput input)
         {
             var role = roleManager.RoleExistsAsync(input.RoleName);
-            if(role.Result)
+            if (role.Result)
             {
                 return await Task.FromResult(new TransactionStatus(false, "Role already exist"));
             }
@@ -153,8 +159,41 @@ namespace uang_trans.GraphQL
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
             var user = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
-            if(user == null) return new WalletBalance(0);
+            if (user == null) return new WalletBalance(0);
             return new WalletBalance(user.Balance);
         }
+
+        public async Task<ProfileResult> UpdateProfileAsync([Service] AppDbContext context, ProfileInput input)
+        {
+            var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            var customer = await context.Customers.Where(cust => cust.Id == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+            if (customer == null)
+            {
+                return await Task.FromResult(new ProfileResult("Profile not Found", null));
+            }
+
+            customer.FirstName = input.FirstName;
+            customer.LastName = input.LastName;
+            customer.Email = input.Email;
+            customer.CreatedDate = DateTime.Now;
+            await context.SaveChangesAsync();
+
+            var data = _mapper.Map<ProfileOutput>(customer);
+
+            return (new ProfileResult(Message: $"Update profile for Id {customer.Id} success", Data: data));
+        }
+        public async Task<WalletBalance> UpdateWalletAsync([Service] AppDbContext context, WalletInput input)
+        {
+            var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            var wallet = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+
+            if (wallet == null) return new WalletBalance(0);
+
+            wallet.Balance = input.Balance;
+            await context.SaveChangesAsync();
+
+            return new WalletBalance(wallet.Balance);
+        }
+
     }
 }
