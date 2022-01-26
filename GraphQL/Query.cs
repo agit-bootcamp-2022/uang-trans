@@ -1,10 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using HotChocolate;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using uang_rans.Models;
+using uang_trans.Input.Profile;
 using uang_trans.Input.Role;
 using uang_trans.Models;
 
@@ -12,7 +17,6 @@ namespace uang_trans.GraphQL
 {
     public class Query
     {
-
         public IQueryable<Customer> GetCustomersAsync([Service] AppDbContext context) =>
          context.Customers;
 
@@ -37,5 +41,13 @@ namespace uang_trans.GraphQL
 
         public IQueryable<WalletMutation> GetWalletMutationAsync([Service] AppDbContext context) =>
             context.WalletMutations;
+
+
+        public IQueryable<Wallet> GetWalletByCustomerIdAsync([Service] AppDbContext context,
+                                                            [Service] IHttpContextAccessor httpContextAccessor)
+        {
+            var custId = Convert.ToInt32(httpContextAccessor.HttpContext.User.FindFirst("Id").Value);
+            return context.Wallets.Where(p => p.CustomerId == custId);
+        }   
     }
 }
