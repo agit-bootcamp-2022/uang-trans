@@ -38,16 +38,24 @@ namespace uang_trans.GraphQL
 
             return lstRole;
         }
-
+        
         public IQueryable<WalletMutation> GetWalletMutationAsync([Service] AppDbContext context) =>
             context.WalletMutations;
 
-
+        // [Authorize(Roles = new[] { "Customer" })]
         public IQueryable<Wallet> GetWalletByCustomerIdAsync([Service] AppDbContext context,
                                                             [Service] IHttpContextAccessor httpContextAccessor)
         {
             var custId = Convert.ToInt32(httpContextAccessor.HttpContext.User.FindFirst("Id").Value);
             return context.Wallets.Where(p => p.CustomerId == custId);
+        }
+
+        // [Authorize(Roles = new[] { "Admin","Customer" })]
+        public IQueryable<Customer> GetProfileByCustomerIdAsync([Service] AppDbContext context,
+                                                            [Service] IHttpContextAccessor httpContextAccessor)
+        {
+            var custId = Convert.ToInt32(httpContextAccessor.HttpContext.User.FindFirst("Id").Value);
+            return context.Customers.Where(p=> p.Id == custId);    
         }   
     }
 }
