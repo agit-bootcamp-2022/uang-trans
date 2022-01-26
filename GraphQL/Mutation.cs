@@ -85,6 +85,54 @@ namespace uang_trans.GraphQL
             }
         }
 
+        public async Task<Register> RegisterAdminAsync([Service] AppDbContext context,
+                                                   [Service] UserManager<IdentityUser> userManager,
+                                                   Register input)
+        {
+            try
+            {
+                var newAdmin = new IdentityUser
+                {
+                    UserName = input.Username,
+                    Email = input.Email
+                };
+
+                var result = await userManager.CreateAsync(newAdmin, input.Password);
+                if (!result.Succeeded)
+                {
+                    throw new Exception("failed to add admin user");
+                }
+                
+                var user = await userManager.FindByNameAsync(input.Username);
+
+                await userManager.SetLockoutEnabledAsync(user, false);
+
+                await userManager.AddToRoleAsync(user, "Admin");
+
+                var userEntity = new Customer
+                {
+                    Username = input.Username,
+                    FirstName = input.FirstName,
+                    LastName = input.LastName,
+                    Email = input.Email,
+                    CreatedDate = DateTime.Now
+
+                };
+
+                Console.WriteLine(userEntity);
+
+                context.Customers.Add(userEntity);
+                await context.SaveChangesAsync();
+
+                return input;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
+            }
+
+        }
+
         public async Task<AddRoleToUser> AddToRoleAsync([Service] AppDbContext context,
                                          [Service] UserManager<IdentityUser> userManager,
                                          AddRoleToUser input)
