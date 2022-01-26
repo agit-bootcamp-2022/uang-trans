@@ -12,6 +12,7 @@ using uang_trans.Helpers;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using System;
+using Microsoft.AspNetCore.Http;
 
 namespace uang_trans
 {
@@ -44,21 +45,25 @@ namespace uang_trans
                   (options => options.UseSqlServer(Configuration.GetConnectionString("DbConn")));
             }
 
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            services.AddAuthorization();
+
             services
                 .AddGraphQLServer()
                 .AddQueryType<Query>()
                 .AddMutationType<Mutation>()
-                .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = _env.IsDevelopment());
-
+                .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = _env.IsDevelopment())
+                .AddAuthorization();
 
             services.AddIdentity<IdentityUser, IdentityRole>(options =>
-          {
-              options.Password.RequiredLength = 8;
-              options.Password.RequireLowercase = true;
-              options.Password.RequireUppercase = true;
-              options.Password.RequireNonAlphanumeric = true;
-              options.Password.RequireDigit = true;
-          }).AddDefaultTokenProviders().AddEntityFrameworkStores<AppDbContext>();
+            {
+                options.Password.RequiredLength = 8;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequireDigit = true;
+            }).AddDefaultTokenProviders().AddEntityFrameworkStores<AppDbContext>();
 
             var appSettingsSection = Configuration.GetSection("AppSettings");
             services.Configure<AppSettings>(appSettingsSection);
@@ -84,7 +89,6 @@ namespace uang_trans
                     ValidateAudience = false
                 };
             });
-            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -96,6 +100,10 @@ namespace uang_trans
             }
 
             app.UseRouting();
+
+            app.UseAuthentication();
+
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
