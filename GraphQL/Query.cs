@@ -11,5 +11,8 @@ namespace uang_trans.GraphQL
 
         public IQueryable<WalletMutation> GetTransactionsAsync([Service] AppDbContext context) =>
          context.WalletMutations;
+
+        public IQueryable<Wallet> GetWalletsAsync([Service] AppDbContext context) =>
+          context.Wallets;
     }
 }
