@@ -235,28 +235,42 @@ namespace uang_trans.GraphQL
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
             try
             {
-                var buyer = context.Wallets.Where(buy => buy.CustomerId == input.BuyerId).SingleOrDefault();
-                var courier = context.Wallets.Where(cour => cour.CustomerId == input.CourierId).SingleOrDefault();
+                var buyerWallet = context.Wallets.Where(buy => buy.CustomerId == input.BuyerId).SingleOrDefault();
+                if (buyerWallet == null) return new TransactionCreateOutput("Buyer wallet Not Found", 0);
+                if (buyerWallet.Balance < input.AmountBuyer) return new TransactionCreateOutput("Insufficient User Balance. Please Topup First", 0);
+
+                var courierWallet = context.Wallets.Where(cour => cour.CustomerId == input.CourierId).SingleOrDefault();
+                if (courierWallet == null) return new TransactionCreateOutput("Courier wallet Not Found", 0);
+
                 foreach (var seller in input.Sellers)
                 {
-                    _ = context.Wallets.Where(a => a.CustomerId == seller.SellerId).SingleOrDefault();
+                    var sellerWallet = context.Wallets.Where(a => a.CustomerId == seller.SellerId).SingleOrDefault();
+                    if (sellerWallet == null) return new TransactionCreateOutput("Seller wallet Not Found", 0);
                 }
-
-                var sellers = _mapper.Map<List<Seller>>(input.Sellers);
 
                 var transaction = new Transaction
                 {
                     BuyerId = input.BuyerId,
                     AmountBuyer = input.AmountBuyer,
                     CourierId = input.CourierId,
-                    AmountCourier = input.AmountCourier
+                    AmountCourier = input.AmountCourier,
+                    TransactionStatus = Status.Paid
                 };
 
-                buyer.Balance -= input.AmountBuyer;
-                courier.Balance += input.AmountCourier;
                 context.Transactions.Add(transaction);
 
+                buyerWallet.Balance -= input.AmountBuyer;
+                courierWallet.Balance += input.AmountCourier;
+                
                 await context.SaveChangesAsync();
+
+                var mutationBuyer = new WalletMutationCreateInput(input.BuyerId, input.AmountBuyer, MutationType.Debit);
+                var mutationCourier = new WalletMutationCreateInput(input.CourierId, input.AmountCourier, MutationType.Credit);
+
+                await CreateWalletMutationDebitCredit(context, mutationBuyer);
+                await CreateWalletMutationDebitCredit(context, mutationCourier);
+                
+                var sellers = _mapper.Map<List<Seller>>(input.Sellers);
 
                 foreach(var a in sellers)
                 {
@@ -264,15 +278,31 @@ namespace uang_trans.GraphQL
                     context.Sellers.Add(a);
                 }
 
-                context.SaveChanges();
+                await context.SaveChangesAsync();
                 return new TransactionCreateOutput("Success", transaction.Id);
             }
             catch (Exception ex)
             {
                 return new TransactionCreateOutput($"Error: {ex.Message}", 0);
             }
+        }
 
+        public async Task<TransactionStatus> CreateWalletMutationDebitCredit([Service] AppDbContext context,
+                                                                            WalletMutationCreateInput input)
+        {
+            var customerWallet = await context.Wallets.Where(w => w.CustomerId == input.CustomerId).SingleOrDefaultAsync();
 
+            var walletMutation = new WalletMutation
+            {
+                WalletId = customerWallet.Id,
+                Amount = input.Amount,
+                MutationType = input.MutationType,
+                CreatedDate = DateTime.Now
+            };
+
+            context.WalletMutations.Add(walletMutation);
+            await context.SaveChangesAsync();
+            return new TransactionStatus(true, "Success");
         }                                                          
 
         [Authorize(Roles = new [] {"Customer"})]
