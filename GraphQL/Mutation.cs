@@ -155,12 +155,27 @@ namespace uang_trans.GraphQL
         }
 
         // [Authorize(Roles = new [] {"Customer"})]
-        public async Task<WalletBalance> TopUp([Service] AppDbContext context)
+        public async Task<WalletBalance> TopUp([Service] AppDbContext context,
+                                                WalletInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
-            var user = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
-            if (user == null) return new WalletBalance(0);
-            return new WalletBalance(user.Balance);
+            var userWallet = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+            if (userWallet == null) return new WalletBalance("Wallet Not Found", 0);
+
+            userWallet.Balance += input.Balance;
+
+            var walletMutation = new WalletMutation
+            {
+                WalletId = userWallet.Id,
+                Amount = input.Balance,
+                MutationType = MutationType.Credit,
+                CreatedDate = DateTime.Now,
+            };
+
+            await context.WalletMutations.AddAsync(walletMutation);
+
+            await context.SaveChangesAsync();
+            return new WalletBalance("Success", userWallet.Balance);
         }
 
         public async Task<ProfileResult> UpdateProfileAsync([Service] AppDbContext context, ProfileInput input)
@@ -187,12 +202,12 @@ namespace uang_trans.GraphQL
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
             var wallet = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
 
-            if (wallet == null) return new WalletBalance(0);
+            if (wallet == null) return new WalletBalance("Wallet Not Found", 0);
 
             wallet.Balance = input.Balance;
             await context.SaveChangesAsync();
 
-            return new WalletBalance(wallet.Balance);
+            return new WalletBalance("Success", wallet.Balance);
         }
 
     }
