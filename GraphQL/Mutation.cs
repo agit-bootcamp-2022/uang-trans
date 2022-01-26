@@ -320,6 +320,7 @@ namespace uang_trans.GraphQL
             return (new ProfileResult(Message: $"Update profile for Id {customer.Id} success", Data: data));
         }
 
+        [Authorize(Roles = new[] { "Customer" })]
         public async Task<WalletBalance> UpdateWalletAsync([Service] AppDbContext context, WalletInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
@@ -327,10 +328,21 @@ namespace uang_trans.GraphQL
 
             if (wallet == null) return new WalletBalance("Wallet Not Found", 0);
 
-            wallet.Balance = input.Balance;
+            wallet.Balance -= input.Balance;
+
+            var newMutation = new WalletMutation
+            {
+                WalletId = wallet.Id,
+                Amount = input.Balance,
+                MutationType = MutationType.Debit,
+                CreatedDate = DateTime.Now,
+            };
+
+            await context.WalletMutations.AddAsync(newMutation);
+
             await context.SaveChangesAsync();
 
-            return new WalletBalance("Success", wallet.Balance);
+            return new WalletBalance($"Wallet id {wallet.Id} successfully decreased by {input.Balance}", wallet.Balance);
         }
 
         public async Task<TransactionStatus> LockUserAsync([Service] AppDbContext context,
