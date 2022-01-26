@@ -86,6 +86,54 @@ namespace uang_trans.GraphQL
         }
 
         // [Authorize(Roles = new [] {"Admin"})]
+        public async Task<Register> RegisterAdminAsync([Service] AppDbContext context,
+                                                   [Service] UserManager<IdentityUser> userManager,
+                                                   Register input)
+        {
+            try
+            {
+                var newAdmin = new IdentityUser
+                {
+                    UserName = input.Username,
+                    Email = input.Email
+                };
+
+                var result = await userManager.CreateAsync(newAdmin, input.Password);
+                if (!result.Succeeded)
+                {
+                    throw new Exception("failed to add admin user");
+                }
+                
+                var user = await userManager.FindByNameAsync(input.Username);
+
+                await userManager.SetLockoutEnabledAsync(user, false);
+
+                await userManager.AddToRoleAsync(user, "Admin");
+
+                var userEntity = new Customer
+                {
+                    Username = input.Username,
+                    FirstName = input.FirstName,
+                    LastName = input.LastName,
+                    Email = input.Email,
+                    CreatedDate = DateTime.Now
+
+                };
+
+                Console.WriteLine(userEntity);
+
+                context.Customers.Add(userEntity);
+                await context.SaveChangesAsync();
+
+                return input;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
+            }
+
+        }
+
         public async Task<AddRoleToUser> AddToRoleAsync([Service] AppDbContext context,
                                          [Service] UserManager<IdentityUser> userManager,
                                          AddRoleToUser input)
@@ -163,12 +211,27 @@ namespace uang_trans.GraphQL
         }
 
         // [Authorize(Roles = new [] {"Customer"})]
-        public async Task<WalletBalance> TopUp([Service] AppDbContext context)
+        public async Task<WalletBalance> TopUp([Service] AppDbContext context,
+                                                WalletInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
-            var user = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
-            if (user == null) return new WalletBalance(0);
-            return new WalletBalance(user.Balance);
+            var userWallet = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+            if (userWallet == null) return new WalletBalance("Wallet Not Found", 0);
+
+            userWallet.Balance += input.Balance;
+
+            var walletMutation = new WalletMutation
+            {
+                WalletId = userWallet.Id,
+                Amount = input.Balance,
+                MutationType = MutationType.Credit,
+                CreatedDate = DateTime.Now,
+            };
+
+            await context.WalletMutations.AddAsync(walletMutation);
+
+            await context.SaveChangesAsync();
+            return new WalletBalance("Success", userWallet.Balance);
         }
 
         public async Task<ProfileResult> UpdateProfileAsync([Service] AppDbContext context, ProfileInput input)
@@ -196,12 +259,12 @@ namespace uang_trans.GraphQL
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
             var wallet = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
 
-            if (wallet == null) return new WalletBalance(0);
+            if (wallet == null) return new WalletBalance("Wallet Not Found", 0);
 
             wallet.Balance = input.Balance;
             await context.SaveChangesAsync();
 
-            return new WalletBalance(wallet.Balance);
+            return new WalletBalance("Success", wallet.Balance);
         }
 
         public async Task<TransactionStatus> LockUserAsync([Service] AppDbContext context,

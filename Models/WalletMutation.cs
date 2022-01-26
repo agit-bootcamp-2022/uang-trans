@@ -11,10 +11,15 @@ namespace uang_trans.Models
         [Key]
         public int Id { get; set; }
         public int WalletId { get; set; }
-        public double Debit { get; set; }
+        public double Amount { get; set; }
+        public MutationType MutationType { get; set; }
         public DateTime CreatedDate { get; set; }
 
         public Wallet Wallet { get; set; }
     }
 
+    public enum MutationType
+    {
+        Debit, Credit
+    }
 }

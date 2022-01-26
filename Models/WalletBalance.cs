@@ -7,6 +7,7 @@ namespace uang_trans.Models
 {
     public record WalletBalance
     (
-        int Balance
+        string Message,
+        double Balance
     );
 }

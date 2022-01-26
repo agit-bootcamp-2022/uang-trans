@@ -11,7 +11,7 @@ namespace uang_trans.Models
     {
         [Key]
         public int Id { get; set; }
-        public int Balance { get; set; }
+        public double Balance { get; set; }
         public DateTime CreatedDate { get; set; }
         public ICollection<WalletMutation> WalletMutations { get; set; }
 
