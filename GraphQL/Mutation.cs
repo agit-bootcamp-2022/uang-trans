@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using uang_trans.Input;
 using uang_trans.Input.Role;
 using uang_trans.Input.User;
 using uang_trans.Models;
@@ -27,6 +28,75 @@ namespace uang_trans.GraphQL
         public Mutation(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
+        }
+
+        public async Task<Register> RegisterUserAsync([Service] AppDbContext context,
+                                                      [Service] UserManager<IdentityUser> userManager,
+                                                      Register input)
+        {
+            try
+            {
+                var newUser = new IdentityUser
+                {
+                    UserName = input.Username,
+                    Email = input.Username
+
+                };
+
+                var result = await userManager.CreateAsync(newUser, input.Password);
+
+                if (!result.Succeeded)
+                {
+                    throw new Exception("Gagal Menambahkan User");
+                }
+                var userResult = await userManager.FindByNameAsync(newUser.Email);
+                
+
+                var userEntity = new Customer
+                {
+                    Username = input.Username,
+                    FirstName = input.FirstName,
+                    LastName = input.LastName,
+                    Email = input.Email
+                };
+
+                Console.WriteLine(userEntity);
+
+                context.Customers.Add(userEntity);
+                await context.SaveChangesAsync();
+                return input;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
+            }
+        }
+
+        public async Task<AddRoleToUser> AddToRoleAsync([Service] AppDbContext context,
+                                         [Service] UserManager<IdentityUser> userManager,
+                                         AddRoleToUser input)
+        {
+            var user = await userManager.FindByNameAsync(input.Username);
+            try
+            {
+                var result = await userManager.AddToRoleAsync(user, input.Rolename);
+                if (!result.Succeeded)
+                {
+
+                    StringBuilder errMsg = new StringBuilder(String.Empty);
+                    foreach (var err in result.Errors)
+                    {
+                        errMsg.Append(err.Description + " ");
+                    }
+                    throw new Exception($"{errMsg}");
+                }
+                
+                return input;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
 
         public async Task<UserToken> LoginUserAsync([Service] AppDbContext context, 
