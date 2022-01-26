@@ -50,9 +50,9 @@ namespace uang_trans.GraphQL
                 };
 
                 var result = await userManager.CreateAsync(newUser, input.Password);
-                
+
                 var user = await userManager.FindByNameAsync(input.Username);
-                
+
                 await userManager.SetLockoutEnabledAsync(user, false);
 
                 await userManager.AddToRoleAsync(user, "Customer");
@@ -62,7 +62,7 @@ namespace uang_trans.GraphQL
                     throw new Exception("Gagal Menambahkan User");
                 }
                 var userResult = await userManager.FindByNameAsync(newUser.Email);
-                
+
 
                 var userEntity = new Customer
                 {
@@ -120,7 +120,7 @@ namespace uang_trans.GraphQL
                 {
                     throw new Exception("failed to add admin user");
                 }
-                
+
                 var user = await userManager.FindByNameAsync(input.Username);
 
                 await userManager.SetLockoutEnabledAsync(user, false);
@@ -169,7 +169,7 @@ namespace uang_trans.GraphQL
                     }
                     throw new Exception($"{errMsg}");
                 }
-                
+
                 return input;
             }
             catch (Exception ex)
@@ -177,7 +177,7 @@ namespace uang_trans.GraphQL
                 throw new Exception(ex.Message);
             }
         }
-        
+
         public async Task<UserToken> LoginUserAsync([Service] AppDbContext context,
                                                     [Service] IOptions<TokenSettings> tokenSettings,
                                                     [Service] UserManager<IdentityUser> userManager,
@@ -251,6 +251,7 @@ namespace uang_trans.GraphQL
             return new WalletBalance("Success", userWallet.Balance);
         }
 
+        [Authorize(Roles = new[] { "Customer" })]
         public async Task<ProfileResult> UpdateProfileAsync([Service] AppDbContext context, ProfileInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
@@ -289,7 +290,7 @@ namespace uang_trans.GraphQL
                                                            LockUser input)
         {
             var user = await userManager.FindByNameAsync(input.Username);
-    
+
             await userManager.SetLockoutEnabledAsync(user, true);
 
             return await Task.FromResult(new TransactionStatus(true, "Lock User Success"));
