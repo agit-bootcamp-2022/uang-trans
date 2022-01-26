@@ -77,6 +77,23 @@ namespace uang_trans.GraphQL
 
                 context.Customers.Add(userEntity);
                 await context.SaveChangesAsync();
+
+                context.Entry(userEntity).GetDatabaseValues();
+                int id = userEntity.Id;
+
+                var walletEntity = new Wallet
+                {
+                    CustomerId = id,
+                    Balance = 0,
+                    CreatedDate = DateTime.Now
+
+                };
+
+                Console.WriteLine(walletEntity);
+
+                context.Wallets.Add(walletEntity);
+                await context.SaveChangesAsync();
+
                 return await Task.FromResult(new TransactionStatus(true, "Add User Success"));
             }
             catch (Exception ex)
