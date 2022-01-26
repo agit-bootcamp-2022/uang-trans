@@ -64,7 +64,7 @@ namespace uang_trans
             services.Configure<AppSettings>(appSettingsSection);
             var tokenSettingsSection = Configuration.GetSection("TokenSettings");
             services.Configure<TokenSettings>(tokenSettingsSection);
-            
+
             var appSettings = appSettingsSection.Get<AppSettings>();
             var key = Encoding.ASCII.GetBytes(appSettings.Secret);
             services.AddAuthentication(x =>
@@ -84,6 +84,7 @@ namespace uang_trans
                     ValidateAudience = false
                 };
             });
+            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
