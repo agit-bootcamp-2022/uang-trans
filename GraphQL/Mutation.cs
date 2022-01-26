@@ -228,7 +228,7 @@ namespace uang_trans.GraphQL
             return await Task.FromResult(new TransactionStatus(true, "Add Role Success"));
         }
 
-        [Authorize(Roles = new [] {"Customer"})]
+        [Authorize(Roles = new[] { "Customer" })]
         public async Task<TransactionCreateOutput> CreateTransaction([Service] AppDbContext context,
                                                                     TransactionCreateInput input)
         {
@@ -261,7 +261,7 @@ namespace uang_trans.GraphQL
 
                 buyerWallet.Balance -= input.AmountBuyer;
                 courierWallet.Balance += input.AmountCourier;
-                
+
                 await context.SaveChangesAsync();
 
                 var mutationBuyer = new WalletMutationCreateInput(input.BuyerId, input.AmountBuyer, MutationType.Debit);
@@ -269,10 +269,10 @@ namespace uang_trans.GraphQL
 
                 await CreateWalletMutationDebitCredit(context, mutationBuyer);
                 await CreateWalletMutationDebitCredit(context, mutationCourier);
-                
+
                 var sellers = _mapper.Map<List<Seller>>(input.Sellers);
 
-                foreach(var a in sellers)
+                foreach (var a in sellers)
                 {
                     a.TransactionId = transaction.Id;
                     context.Sellers.Add(a);
@@ -303,9 +303,9 @@ namespace uang_trans.GraphQL
             context.WalletMutations.Add(walletMutation);
             await context.SaveChangesAsync();
             return new TransactionStatus(true, "Success");
-        }                                                          
+        }
 
-        [Authorize(Roles = new [] {"Customer"})]
+        [Authorize(Roles = new[] { "Customer" })]
         public async Task<WalletBalance> TopUp([Service] AppDbContext context,
                                                 WalletInput input)
         {
@@ -395,6 +395,57 @@ namespace uang_trans.GraphQL
             await userManager.SetLockoutEnabledAsync(user, false);
 
             return await Task.FromResult(new TransactionStatus(true, "Unlock User Success"));
+        }
+        // For DianterAja
+        [Authorize(Roles = new[] { "Customer" })]
+        public async Task<TransactionStatus> UpdateStatusTransactionAsync([Service] AppDbContext context, TransactionUpdateInput input)
+        {
+            var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            try
+            {
+
+                var getTransaction = await context.Transactions.Where(tr => tr.Id == input.TransactionId).SingleOrDefaultAsync();
+                if (getTransaction == null) return new TransactionStatus(false, "Transaction Data not Found");
+
+                getTransaction.TransactionStatus = Models.Status.Delivered;
+
+                // Find the Sellers on the current Transaction
+                var sellers = context.Sellers.ToList();
+                var sellerOnTransaction = sellers.Where(x => x.TransactionId == getTransaction.Id).ToList();
+
+                foreach (var data in sellerOnTransaction)
+                {
+                    // Find the each of Seller Wallet
+                    var walletSeller = context.Wallets.Where(ws => ws.CustomerId == data.SellerId).SingleOrDefault();
+
+                    // Create Object
+                    var newWalletInput = new WalletInput(data.AmountSeller);
+
+                    // Not Found
+                    if (walletSeller == null) return new TransactionStatus(false, "Wallet Not Found");
+
+                    // Data Found
+                    // Increase the Ballance of each Seller Wallet
+                    walletSeller.Balance += data.AmountSeller;
+
+                    var walletMutation = new WalletMutation
+                    {
+                        WalletId = walletSeller.Id,
+                        Amount = data.AmountSeller,
+                        MutationType = MutationType.Credit,
+                        CreatedDate = DateTime.Now,
+                    };
+
+                    await context.WalletMutations.AddAsync(walletMutation);
+                }
+                await context.SaveChangesAsync();
+                return await Task.FromResult(new TransactionStatus(true, "Transaction Status is successfully updated"));
+            }
+            catch (System.Exception ex)
+            {
+
+                return new TransactionStatus(false, $"Error: {ex.Message}");
+            }
         }
     }
 }
