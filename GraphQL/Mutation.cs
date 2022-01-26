@@ -50,6 +50,12 @@ namespace uang_trans.GraphQL
                 };
 
                 var result = await userManager.CreateAsync(newUser, input.Password);
+                
+                var user = await userManager.FindByNameAsync(input.Username);
+                
+                await userManager.SetLockoutEnabledAsync(user, false);
+
+                await userManager.AddToRoleAsync(user, "Customer");
 
                 if (!result.Succeeded)
                 {
@@ -63,7 +69,8 @@ namespace uang_trans.GraphQL
                     Username = input.Username,
                     FirstName = input.FirstName,
                     LastName = input.LastName,
-                    Email = input.Email
+                    Email = input.Email,
+                    CreatedDate = DateTime.Now
                 };
 
                 Console.WriteLine(userEntity);
@@ -182,6 +189,7 @@ namespace uang_trans.GraphQL
 
             return (new ProfileResult(Message: $"Update profile for Id {customer.Id} success", Data: data));
         }
+
         public async Task<WalletBalance> UpdateWalletAsync([Service] AppDbContext context, WalletInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
