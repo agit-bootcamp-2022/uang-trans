@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 namespace uang_trans.Input.Wallet
 {
     public record WalletInput
-    (int Balance);
+    (
+        double Balance
+    );
 
 
 }
