@@ -20,6 +20,7 @@ using uang_trans.Input.Profile;
 using uang_trans.Models;
 using AutoMapper;
 using uang_trans.Input.Wallet;
+using uang_trans.Input.Transaction;
 
 // using System.IdentityModel.Tokens.Jwt;
 
@@ -227,7 +228,54 @@ namespace uang_trans.GraphQL
             return await Task.FromResult(new TransactionStatus(true, "Add Role Success"));
         }
 
-        // [Authorize(Roles = new [] {"Customer"})]
+        [Authorize(Roles = new [] {"Customer"})]
+        public async Task<TransactionCreateOutput> CreateTransaction([Service] AppDbContext context,
+                                                                    TransactionCreateInput input)
+        {
+            var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            try
+            {
+                var buyer = context.Wallets.Where(buy => buy.CustomerId == input.BuyerId).SingleOrDefault();
+                var courier = context.Wallets.Where(cour => cour.CustomerId == input.CourierId).SingleOrDefault();
+                foreach (var seller in input.Sellers)
+                {
+                    _ = context.Wallets.Where(a => a.CustomerId == seller.SellerId).SingleOrDefault();
+                }
+
+                var sellers = _mapper.Map<List<Seller>>(input.Sellers);
+
+                var transaction = new Transaction
+                {
+                    BuyerId = input.BuyerId,
+                    AmountBuyer = input.AmountBuyer,
+                    CourierId = input.CourierId,
+                    AmountCourier = input.AmountCourier
+                };
+
+                buyer.Balance -= input.AmountBuyer;
+                courier.Balance += input.AmountCourier;
+                context.Transactions.Add(transaction);
+
+                await context.SaveChangesAsync();
+
+                foreach(var a in sellers)
+                {
+                    a.TransactionId = transaction.Id;
+                    context.Sellers.Add(a);
+                }
+
+                context.SaveChanges();
+                return new TransactionCreateOutput("Success", transaction.Id);
+            }
+            catch (Exception ex)
+            {
+                return new TransactionCreateOutput($"Error: {ex.Message}", 0);
+            }
+
+
+        }                                                          
+
+        [Authorize(Roles = new [] {"Customer"})]
         public async Task<WalletBalance> TopUp([Service] AppDbContext context,
                                                 WalletInput input)
         {
