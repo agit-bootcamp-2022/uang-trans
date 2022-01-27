@@ -15,8 +15,6 @@ namespace uang_trans.Input.Transaction
         [Required]
         public double AmountBuyer { get; set; }
         [Required]
-        public int CourierId { get; set; }
-        [Required]
         public double AmountCourier { get; set; }
         [Required]
         public List<SellerCreateInput> Sellers { get; set; }

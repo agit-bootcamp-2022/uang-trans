@@ -239,7 +239,10 @@ namespace uang_trans.GraphQL
                 if (buyerWallet == null) return new TransactionCreateOutput("Buyer wallet Not Found", 0);
                 if (buyerWallet.Balance < input.AmountBuyer) return new TransactionCreateOutput("Insufficient User Balance. Please Topup First", 0);
 
-                var courierWallet = context.Wallets.Where(cour => cour.CustomerId == input.CourierId).SingleOrDefault();
+                var courier = context.Customers.Where(cust => cust.Username == "dianter").SingleOrDefault();
+                if (courier == null) return new TransactionCreateOutput("Courier Not Found", 0);
+
+                var courierWallet = context.Wallets.Where(cour => cour.CustomerId == courier.Id).SingleOrDefault();
                 if (courierWallet == null) return new TransactionCreateOutput("Courier wallet Not Found", 0);
 
                 foreach (var seller in input.Sellers)
@@ -252,7 +255,7 @@ namespace uang_trans.GraphQL
                 {
                     BuyerId = input.BuyerId,
                     AmountBuyer = input.AmountBuyer,
-                    CourierId = input.CourierId,
+                    CourierId = courier.Id,
                     AmountCourier = input.AmountCourier,
                     TransactionStatus = Status.Paid
                 };
@@ -265,7 +268,7 @@ namespace uang_trans.GraphQL
                 await context.SaveChangesAsync();
 
                 var mutationBuyer = new WalletMutationCreateInput(input.BuyerId, input.AmountBuyer, MutationType.Debit);
-                var mutationCourier = new WalletMutationCreateInput(input.CourierId, input.AmountCourier, MutationType.Credit);
+                var mutationCourier = new WalletMutationCreateInput(courier.Id, input.AmountCourier, MutationType.Credit);
 
                 await CreateWalletMutationDebitCredit(context, mutationBuyer);
                 await CreateWalletMutationDebitCredit(context, mutationCourier);
