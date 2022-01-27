@@ -406,8 +406,12 @@ namespace uang_trans.GraphQL
 
                 var getTransaction = await context.Transactions.Where(tr => tr.Id == input.TransactionId).SingleOrDefaultAsync();
                 if (getTransaction == null) return new TransactionStatus(false, "Transaction Data not Found");
+                if (getTransaction.TransactionStatus == Status.Delivered)
+                {
+                    return new TransactionStatus(false, "Cannot change status, transaction is already update Delivered");
+                }
 
-                getTransaction.TransactionStatus = Models.Status.Delivered;
+                getTransaction.TransactionStatus = Status.Delivered;
 
                 // Find the Sellers on the current Transaction
                 var sellers = context.Sellers.ToList();
