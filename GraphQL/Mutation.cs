@@ -333,6 +333,26 @@ namespace uang_trans.GraphQL
         }
 
         [Authorize(Roles = new[] { "Customer" })]
+        public async Task<TransactionStatus> TransferBalanceAsync([Service] AppDbContext context,
+                                                                  TransferBalanceInput input)
+        {
+            var custCreditWallet = await context.Wallets.FirstOrDefaultAsync(w => w.CustomerId == input.CustomerCreditId);
+            if(custCreditWallet == null) return new TransactionStatus(false, "Customer Credit Wallet Not Found");
+            var custDebitWallet = await context.Wallets.FirstOrDefaultAsync(w => w.CustomerId == input.CustomerDebitId);
+            if(custDebitWallet == null) return new TransactionStatus(false, "Customer Debit Wallet Not Found");
+            if(custDebitWallet.Balance<input.Amount) return new TransactionStatus(false, "Insufficient Customer Debit Wallet, Please Topup");
+
+            custCreditWallet.Balance += input.Amount;
+            custDebitWallet.Balance -= input.Amount;
+
+            var mutationCredit = new WalletMutationCreateInput(input.CustomerCreditId, input.Amount, MutationType.Credit);
+            var mutationDebit = new WalletMutationCreateInput(input.CustomerDebitId, input.Amount, MutationType.Debit);
+
+            await context.SaveChangesAsync();
+            return new TransactionStatus(true, "Transfer Success");
+        }
+
+        [Authorize(Roles = new[] { "Customer" })]
         public async Task<ProfileResult> UpdateProfileAsync([Service] AppDbContext context, ProfileInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
