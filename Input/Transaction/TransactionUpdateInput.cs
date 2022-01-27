@@ -7,8 +7,12 @@ namespace uang_trans.Input.Transaction
 {
     public record TransactionUpdateInput
     (
-    int TransactionId
-
+    int TransactionId,
+     Statuss TransactionStatus
     );
 
+    public enum Statuss
+    {
+        Paid, Delivered
+    }
 }
