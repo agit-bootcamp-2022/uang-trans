@@ -63,13 +63,7 @@ namespace uang_trans.GraphQL
                 LastName = p.LastName,
                 Email = p.Email,
                 CreatedDate = p.CreatedDate
-            }).Where(x => x.Id == custId);            
-
-        public IQueryable<Customer> GetProfileByCustomerIdAsync([Service] AppDbContext context,
-                                                            [Service] IHttpContextAccessor httpContextAccessor)
-        {
-            var custId = Convert.ToInt32(httpContextAccessor.HttpContext.User.FindFirst("Id").Value);
-            return context.Customers.Where(p=> p.Id == custId);    
-        }   
+            }).Where(x => x.Id == custId);
+        }               
     }
 }
