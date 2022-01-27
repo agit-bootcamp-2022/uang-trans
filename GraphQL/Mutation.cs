@@ -103,7 +103,6 @@ namespace uang_trans.GraphQL
             }
         }
 
-        // [Authorize(Roles = new [] {"Admin"})]
         public async Task<Register> RegisterAdminAsync([Service] AppDbContext context,
                                                    [Service] UserManager<IdentityUser> userManager,
                                                    Register input)
@@ -214,7 +213,7 @@ namespace uang_trans.GraphQL
             return await Task.FromResult(new UserToken(token, expired.ToString(), null));
         }
 
-        // [Authorize(Roles = new [] {"Admin"})]
+        [Authorize(Roles = new [] {"Admin"})]
         public async Task<TransactionStatus> CreateRoleAsync([Service] AppDbContext context,
                                                              [Service] RoleManager<IdentityRole> roleManager,
                                                              CreateRoleInput input)
@@ -421,6 +420,7 @@ namespace uang_trans.GraphQL
 
             return await Task.FromResult(new TransactionStatus(true, "Unlock User Success"));
         }
+
         // For DianterAja
         [Authorize(Roles = new[] { "Customer" })]
         public async Task<TransactionStatus> UpdateStatusTransactionAsync([Service] AppDbContext context, TransactionUpdateInput input)

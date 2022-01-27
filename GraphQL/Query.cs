@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using HotChocolate;
+using HotChocolate.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -17,16 +18,20 @@ namespace uang_trans.GraphQL
 {
     public class Query
     {
+
+        [Authorize(Roles = new [] {"Admin"})]
         public IQueryable<Customer> GetCustomersAsync([Service] AppDbContext context) =>
-         context.Customers;
+         context.Customers.Include(c => c.Wallet);
 
+        [Authorize(Roles = new [] {"Admin"})]
         public IQueryable<Transaction> GetTransactionsAsync([Service] AppDbContext context) =>
-         context.Transactions;
+         context.Transactions.Include(t => t.Sellers);
 
+        [Authorize(Roles = new [] {"Admin"})]
         public IQueryable<Wallet> GetWalletsAsync([Service] AppDbContext context) =>
           context.Wallets;
 
-        //[Authorize(Roles = new [] {"Admin"})]
+        [Authorize(Roles = new [] {"Admin"})]
         public List<Roles> GeRolesAsync([Service] AppDbContext context)
         {
             List<Roles> lstRole = new List<Roles>();
@@ -39,10 +44,11 @@ namespace uang_trans.GraphQL
             return lstRole;
         }
         
+        [Authorize(Roles = new [] {"Admin"})]
         public IQueryable<WalletMutation> GetWalletMutationAsync([Service] AppDbContext context) =>
             context.WalletMutations;
 
-        // [Authorize(Roles = new[] { "Customer" })]
+        [Authorize(Roles = new[] { "Customer" })]
         public IQueryable<Wallet> GetWalletByCustomerIdAsync([Service] AppDbContext context,
                                                             [Service] IHttpContextAccessor httpContextAccessor)
         {
@@ -50,7 +56,7 @@ namespace uang_trans.GraphQL
             return context.Wallets.Where(p => p.CustomerId == custId);
         }
 
-        // [Authorize(Roles = new[] { "Admin","Customer" })]
+        [Authorize(Roles = new[] { "Admin","Customer" })]
         public IQueryable<ProfileOutput> GetProfileByCustomerIdAsync([Service] AppDbContext context,
                                                             [Service] IHttpContextAccessor httpContextAccessor)
         {
@@ -72,6 +78,7 @@ namespace uang_trans.GraphQL
             public Wallet Wallet { get; set; }
         }
 
+        [Authorize(Roles = new [] {"Customer"})]
         public IQueryable<TableJoinResult> GetWalletMutationIdAsync([Service] AppDbContext context,
                                                                     [Service] IHttpContextAccessor httpContextAccessor)
         {
