@@ -295,7 +295,7 @@ namespace uang_trans.GraphQL
             }
         }
 
-        public async Task<TransactionStatus> CreateWalletMutationDebitCredit([Service] AppDbContext context,
+        public async Task<TransferBalanceOutput> CreateWalletMutationDebitCredit([Service] AppDbContext context,
                                                                             WalletMutationCreateInput input)
         {
             var customerWallet = await context.Wallets.Where(w => w.CustomerId == input.CustomerId).SingleOrDefaultAsync();
@@ -310,7 +310,7 @@ namespace uang_trans.GraphQL
 
             context.WalletMutations.Add(walletMutation);
             await context.SaveChangesAsync();
-            return new TransactionStatus(true, "Success");
+            return new TransferBalanceOutput(true, walletMutation.Id, "Success");
         }
 
         [Authorize(Roles = new[] { "Customer" })]
@@ -332,20 +332,19 @@ namespace uang_trans.GraphQL
             };
 
             await context.WalletMutations.AddAsync(walletMutation);
-
-            await context.SaveChangesAsync();
+            
             return new WalletBalance("Success", userWallet.Balance);
         }
 
         [Authorize(Roles = new[] { "Customer" })]
-        public async Task<TransactionStatus> TransferBalanceAsync([Service] AppDbContext context,
+        public async Task<TransferBalanceOutput> TransferBalanceAsync([Service] AppDbContext context,
                                                                   TransferBalanceInput input)
         {
             var custCreditWallet = await context.Wallets.FirstOrDefaultAsync(w => w.CustomerId == input.CustomerCreditId);
-            if(custCreditWallet == null) return new TransactionStatus(false, "Customer Credit Wallet Not Found");
+            if(custCreditWallet == null) return new TransferBalanceOutput(false, 0, "Customer Credit Wallet Not Found");
             var custDebitWallet = await context.Wallets.FirstOrDefaultAsync(w => w.CustomerId == input.CustomerDebitId);
-            if(custDebitWallet == null) return new TransactionStatus(false, "Customer Debit Wallet Not Found");
-            if(custDebitWallet.Balance<input.Amount) return new TransactionStatus(false, "Insufficient Customer Debit Wallet, Please Topup");
+            if(custDebitWallet == null) return new TransferBalanceOutput(false, 0, "Customer Debit Wallet Not Found");
+            if(custDebitWallet.Balance<input.Amount) return new TransferBalanceOutput(false, 0, "Insufficient Customer Debit Wallet, Please Topup");
 
             custCreditWallet.Balance += input.Amount;
             custDebitWallet.Balance -= input.Amount;
@@ -353,8 +352,11 @@ namespace uang_trans.GraphQL
             var mutationCredit = new WalletMutationCreateInput(input.CustomerCreditId, input.Amount, MutationType.Credit);
             var mutationDebit = new WalletMutationCreateInput(input.CustomerDebitId, input.Amount, MutationType.Debit);
 
+            var outputDebit = await CreateWalletMutationDebitCredit(context, mutationCredit);
+            var outputCredit = await CreateWalletMutationDebitCredit(context, mutationDebit);
+
             await context.SaveChangesAsync();
-            return new TransactionStatus(true, "Transfer Success");
+            return new TransferBalanceOutput(true, outputDebit.ReceiverWalletMutationId,  "Transfer Success");
         }
 
         [Authorize(Roles = new[] { "Customer" })]
