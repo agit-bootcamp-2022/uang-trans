@@ -37,7 +37,7 @@ namespace uang_trans.GraphQL
             _mapper = mapper;
         }
 
-        public async Task<Register> RegisterUserAsync([Service] AppDbContext context,
+        public async Task<ProfileResult> RegisterUserAsync([Service] AppDbContext context,
                                                       [Service] UserManager<IdentityUser> userManager,
                                                       Register input)
         {
@@ -95,7 +95,10 @@ namespace uang_trans.GraphQL
                 context.Wallets.Add(walletEntity);
                 await context.SaveChangesAsync();
 
-                return input;
+                //return input;
+                var data = _mapper.Map<ProfileOutput>(userEntity);
+
+                return (new ProfileResult(Message: $"Register user success", Data: data));
             }
             catch (Exception ex)
             {
@@ -103,7 +106,7 @@ namespace uang_trans.GraphQL
             }
         }
 
-        public async Task<Register> RegisterAdminAsync([Service] AppDbContext context,
+        public async Task<ProfileResult> RegisterAdminAsync([Service] AppDbContext context,
                                                    [Service] UserManager<IdentityUser> userManager,
                                                    Register input)
         {
@@ -142,7 +145,10 @@ namespace uang_trans.GraphQL
                 context.Customers.Add(userEntity);
                 await context.SaveChangesAsync();
 
-                return input;
+                //return input;
+                var data = _mapper.Map<ProfileOutput>(userEntity);
+
+                return (new ProfileResult(Message: $"Register user success", Data: data));
             }
             catch (Exception ex)
             {
