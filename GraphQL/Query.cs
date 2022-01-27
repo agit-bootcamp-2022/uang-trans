@@ -13,6 +13,7 @@ using uang_rans.Models;
 using uang_trans.Input.Profile;
 using uang_trans.Input.Role;
 using uang_trans.Models;
+using UangTrans.Input.Wallet;
 
 namespace uang_trans.GraphQL
 {
@@ -49,11 +50,17 @@ namespace uang_trans.GraphQL
             context.WalletMutations;
 
         [Authorize(Roles = new[] { "Customer" })]
-        public IQueryable<Wallet> GetWalletByCustomerIdAsync([Service] AppDbContext context,
+        public IQueryable<WalletOutput> GetWalletByCustomerIdAsync([Service] AppDbContext context,
                                                             [Service] IHttpContextAccessor httpContextAccessor)
         {
             var custId = Convert.ToInt32(httpContextAccessor.HttpContext.User.FindFirst("Id").Value);
-            return context.Wallets.Where(p => p.CustomerId == custId);
+            return context.Wallets.Select(w => new WalletOutput()
+            {
+                Id = w.Id,
+                CustomerId = w.CustomerId,
+                Balance = w.Balance,
+                CreatedDate = w.CreatedDate
+            }).Where(x => x.Id == custId);
         }
 
         [Authorize(Roles = new[] { "Admin","Customer" })]
