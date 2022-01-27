@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using System;
 using Microsoft.AspNetCore.Http;
+using uang_trans.Data;
 
 namespace uang_trans
 {
@@ -46,6 +47,7 @@ namespace uang_trans
             }
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<DbInitializer>();
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             services.AddAuthorization();
 
@@ -92,12 +94,18 @@ namespace uang_trans
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app,
+                              IWebHostEnvironment env,
+                              AppDbContext context,
+                              DbInitializer seeder,
+                              UserManager<IdentityUser> userManager)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            _ = seeder.Initialize(userManager, env.IsProduction());
 
             app.UseRouting();
 
