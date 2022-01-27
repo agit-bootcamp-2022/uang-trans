@@ -64,6 +64,26 @@ namespace uang_trans.GraphQL
                 Email = p.Email,
                 CreatedDate = p.CreatedDate
             }).Where(x => x.Id == custId);
-        }               
+        }
+
+        public class TableJoinResult
+        {
+            public WalletMutation WalletMutation { get; set; }
+            public Wallet Wallet { get; set; }
+        }
+
+        public IQueryable<TableJoinResult> GetWalletMutationIdAsync([Service] AppDbContext context,
+                                                                    [Service] IHttpContextAccessor httpContextAccessor)
+        {
+            var custId = Convert.ToInt32(httpContextAccessor.HttpContext.User.FindFirst("Id").Value);
+
+            return
+                from wm in context.WalletMutations
+                join w in context.Wallets on wm.WalletId equals w.Id
+                where
+                    w.CustomerId == custId
+                select new TableJoinResult() { Wallet = w, WalletMutation = wm };
+
+        }
     }
 }
