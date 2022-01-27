@@ -36,7 +36,7 @@ namespace uang_trans.GraphQL
             _mapper = mapper;
         }
 
-        public async Task<TransactionStatus> RegisterUserAsync([Service] AppDbContext context,
+        public async Task<Register> RegisterUserAsync([Service] AppDbContext context,
                                                       [Service] UserManager<IdentityUser> userManager,
                                                       Register input)
         {
@@ -94,7 +94,7 @@ namespace uang_trans.GraphQL
                 context.Wallets.Add(walletEntity);
                 await context.SaveChangesAsync();
 
-                return await Task.FromResult(new TransactionStatus(true, "Add User Success"));
+                return input;
             }
             catch (Exception ex)
             {
@@ -103,7 +103,7 @@ namespace uang_trans.GraphQL
         }
 
         // [Authorize(Roles = new [] {"Admin"})]
-        public async Task<TransactionStatus> RegisterAdminAsync([Service] AppDbContext context,
+        public async Task<Register> RegisterAdminAsync([Service] AppDbContext context,
                                                    [Service] UserManager<IdentityUser> userManager,
                                                    Register input)
         {
@@ -142,7 +142,7 @@ namespace uang_trans.GraphQL
                 context.Customers.Add(userEntity);
                 await context.SaveChangesAsync();
 
-                return await Task.FromResult(new TransactionStatus(true, "Add New Admin User Success!!"));
+                return input;
             }
             catch (Exception ex)
             {
