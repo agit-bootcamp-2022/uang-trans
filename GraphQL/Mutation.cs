@@ -285,6 +285,7 @@ namespace uang_trans.GraphQL
             return new WalletBalance("Success", wallet.Balance);
         }
 
+        [Authorize(Roles = new [] {"Admin"})]
         public async Task<TransactionStatus> LockUserAsync([Service] AppDbContext context,
                                                            [Service] UserManager<IdentityUser> userManager,
                                                            LockUser input)
@@ -296,6 +297,7 @@ namespace uang_trans.GraphQL
             return await Task.FromResult(new TransactionStatus(true, "Lock User Success"));
         }
 
+        [Authorize(Roles = new [] {"Admin"})]
         public async Task<TransactionStatus> UnlockUserAsync([Service] AppDbContext context,
                                                              [Service] UserManager<IdentityUser> userManager,
                                                              LockUser input)
