@@ -51,6 +51,20 @@ namespace uang_trans.GraphQL
         }
 
         // [Authorize(Roles = new[] { "Admin","Customer" })]
+        public IQueryable<ProfileOutput> GetProfileByCustomerIdAsync([Service] AppDbContext context,
+                                                            [Service] IHttpContextAccessor httpContextAccessor)
+        {
+            var custId = Convert.ToInt32(httpContextAccessor.HttpContext.User.FindFirst("Id").Value);
+            return context.Customers.Select(p => new ProfileOutput()
+            {
+                Id = p.Id,
+                Username = p.Username,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                Email = p.Email,
+                CreatedDate = p.CreatedDate
+            }).Where(x => x.Id == custId);            
+
         public IQueryable<Customer> GetProfileByCustomerIdAsync([Service] AppDbContext context,
                                                             [Service] IHttpContextAccessor httpContextAccessor)
         {
