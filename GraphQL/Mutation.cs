@@ -51,6 +51,10 @@ namespace uang_trans.GraphQL
                 };
 
                 var result = await userManager.CreateAsync(newUser, input.Password);
+                if (!result.Succeeded)
+                {
+                    return new ProfileResult("Error: Username Has Taken", new ProfileOutput());
+                }
 
                 var user = await userManager.FindByNameAsync(input.Username);
 
@@ -58,10 +62,6 @@ namespace uang_trans.GraphQL
 
                 await userManager.AddToRoleAsync(user, "Customer");
 
-                if (!result.Succeeded)
-                {
-                    throw new Exception("Gagal Menambahkan User");
-                }
                 var userResult = await userManager.FindByNameAsync(newUser.Email);
 
 
@@ -102,7 +102,7 @@ namespace uang_trans.GraphQL
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error: {ex.Message}");
+                return new ProfileResult($"Error: {ex.Message}", new ProfileOutput());
             }
         }
 
@@ -121,7 +121,7 @@ namespace uang_trans.GraphQL
                 var result = await userManager.CreateAsync(newAdmin, input.Password);
                 if (!result.Succeeded)
                 {
-                    throw new Exception("failed to add admin user");
+                    return new ProfileResult("Error: Username Has Taken", new ProfileOutput());
                 }
 
                 var user = await userManager.FindByNameAsync(input.Username);
@@ -152,7 +152,7 @@ namespace uang_trans.GraphQL
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error: {ex.Message}");
+                return new ProfileResult($"Error: {ex.Message}", new ProfileOutput());
             }
 
         }
