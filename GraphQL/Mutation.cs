@@ -333,6 +333,8 @@ namespace uang_trans.GraphQL
 
             await context.WalletMutations.AddAsync(walletMutation);
             
+            await context.SaveChangesAsync();
+            
             return new WalletBalance("Success", userWallet.Balance);
         }
 
