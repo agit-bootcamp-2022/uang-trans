@@ -219,7 +219,7 @@ namespace uang_trans.GraphQL
             return await Task.FromResult(new UserToken(token, expired.ToString(), null));
         }
 
-        [Authorize(Roles = new [] {"Admin"})]
+        [Authorize(Roles = new[] { "Admin" })]
         public async Task<TransactionStatus> CreateRoleAsync([Service] AppDbContext context,
                                                              [Service] RoleManager<IdentityRole> roleManager,
                                                              CreateRoleInput input)
@@ -240,6 +240,14 @@ namespace uang_trans.GraphQL
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
             try
             {
+                var customer = await context.Customers.Where(cust => cust.Id == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+                var user = await context.Users.Where(u => u.UserName == customer.Username).SingleOrDefaultAsync();
+
+                if (user.LockoutEnabled)
+                {
+                    return new TransactionCreateOutput("Cannot proceed transaction, account is blocked, please contact Admin", 0);
+                }
+
                 var buyerWallet = context.Wallets.Where(buy => buy.CustomerId == input.BuyerId).SingleOrDefault();
                 if (buyerWallet == null) return new TransactionCreateOutput("Buyer wallet Not Found", 0);
                 if (buyerWallet.Balance < input.AmountBuyer) return new TransactionCreateOutput("Insufficient User Balance. Please Topup First", 0);
@@ -318,6 +326,13 @@ namespace uang_trans.GraphQL
                                                 WalletInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            var customer = await context.Customers.Where(cust => cust.Id == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+            var user = await context.Users.Where(u => u.UserName == customer.Username).SingleOrDefaultAsync();
+
+            if (user.LockoutEnabled)
+            {
+                return new WalletBalance("Cannot proceed, account is blocked, please contact Admin", 0);
+            }
             var userWallet = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
             if (userWallet == null) return new WalletBalance("Wallet Not Found", 0);
 
@@ -332,9 +347,9 @@ namespace uang_trans.GraphQL
             };
 
             await context.WalletMutations.AddAsync(walletMutation);
-            
+
             await context.SaveChangesAsync();
-            
+
             return new WalletBalance("Success", userWallet.Balance);
         }
 
@@ -342,11 +357,19 @@ namespace uang_trans.GraphQL
         public async Task<TransferBalanceOutput> TransferBalanceAsync([Service] AppDbContext context,
                                                                   TransferBalanceInput input)
         {
+            var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            var customer = await context.Customers.Where(cust => cust.Id == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+            var user = await context.Users.Where(u => u.UserName == customer.Username).SingleOrDefaultAsync();
+
+            if (user.LockoutEnabled)
+            {
+                return new TransferBalanceOutput(false, 0, "Cannot proceed, account is blocked, please contact Admin");
+            }
             var custCreditWallet = await context.Wallets.FirstOrDefaultAsync(w => w.CustomerId == input.CustomerCreditId);
-            if(custCreditWallet == null) return new TransferBalanceOutput(false, 0, "Customer Credit Wallet Not Found");
+            if (custCreditWallet == null) return new TransferBalanceOutput(false, 0, "Customer Credit Wallet Not Found");
             var custDebitWallet = await context.Wallets.FirstOrDefaultAsync(w => w.CustomerId == input.CustomerDebitId);
-            if(custDebitWallet == null) return new TransferBalanceOutput(false, 0, "Customer Debit Wallet Not Found");
-            if(custDebitWallet.Balance<input.Amount) return new TransferBalanceOutput(false, 0, "Insufficient Customer Debit Wallet, Please Topup");
+            if (custDebitWallet == null) return new TransferBalanceOutput(false, 0, "Customer Debit Wallet Not Found");
+            if (custDebitWallet.Balance < input.Amount) return new TransferBalanceOutput(false, 0, "Insufficient Customer Debit Wallet, Please Topup");
 
             custCreditWallet.Balance += input.Amount;
             custDebitWallet.Balance -= input.Amount;
@@ -358,17 +381,24 @@ namespace uang_trans.GraphQL
             var outputCredit = await CreateWalletMutationDebitCredit(context, mutationDebit);
 
             await context.SaveChangesAsync();
-            return new TransferBalanceOutput(true, outputDebit.ReceiverWalletMutationId,  "Transfer Success");
+            return new TransferBalanceOutput(true, outputDebit.ReceiverWalletMutationId, "Transfer Success");
         }
 
         [Authorize(Roles = new[] { "Customer" })]
         public async Task<ProfileResult> UpdateProfileAsync([Service] AppDbContext context, ProfileInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+
             var customer = await context.Customers.Where(cust => cust.Id == Convert.ToInt32(custId)).SingleOrDefaultAsync();
             if (customer == null)
             {
                 return await Task.FromResult(new ProfileResult("Profile not Found", null));
+            }
+            var user = await context.Users.Where(u => u.UserName == customer.Username).SingleOrDefaultAsync();
+
+            if (user.LockoutEnabled)
+            {
+                return new ProfileResult(Message: "Cannot proceed, account is blocked, please contact Admin", Data: null);
             }
 
             customer.FirstName = input.FirstName;
@@ -386,6 +416,13 @@ namespace uang_trans.GraphQL
         public async Task<WalletBalance> UpdateWalletAsync([Service] AppDbContext context, WalletInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
+            var customer = await context.Customers.Where(cust => cust.Id == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+            var user = await context.Users.Where(u => u.UserName == customer.Username).SingleOrDefaultAsync();
+
+            if (user.LockoutEnabled)
+            {
+                return new WalletBalance("Cannot proceed, account is blocked, please contact Admin", 0);
+            }
             var wallet = await context.Wallets.Where(w => w.CustomerId == Convert.ToInt32(custId)).SingleOrDefaultAsync();
 
             if (wallet == null) return new WalletBalance("Wallet Not Found", 0);
@@ -407,7 +444,7 @@ namespace uang_trans.GraphQL
             return new WalletBalance($"Wallet id {wallet.Id} successfully decreased by {input.Balance}", wallet.Balance);
         }
 
-        [Authorize(Roles = new [] {"Admin"})]
+        [Authorize(Roles = new[] { "Admin" })]
         public async Task<TransactionStatus> LockUserAsync([Service] AppDbContext context,
                                                            [Service] UserManager<IdentityUser> userManager,
                                                            LockUser input)
@@ -419,7 +456,7 @@ namespace uang_trans.GraphQL
             return await Task.FromResult(new TransactionStatus(true, "Lock User Success"));
         }
 
-        [Authorize(Roles = new [] {"Admin"})]
+        [Authorize(Roles = new[] { "Admin" })]
         public async Task<TransactionStatus> UnlockUserAsync([Service] AppDbContext context,
                                                              [Service] UserManager<IdentityUser> userManager,
                                                              LockUser input)
@@ -431,14 +468,19 @@ namespace uang_trans.GraphQL
             return await Task.FromResult(new TransactionStatus(true, "Unlock User Success"));
         }
 
-        // For DianterAja
         [Authorize(Roles = new[] { "Customer" })]
         public async Task<TransactionStatus> UpdateStatusTransactionAsync([Service] AppDbContext context, TransactionUpdateInput input)
         {
             var custId = _httpContextAccessor.HttpContext.User.FindFirst("Id").Value;
             try
             {
+                var customer = await context.Customers.Where(cust => cust.Id == Convert.ToInt32(custId)).SingleOrDefaultAsync();
+                var user = await context.Users.Where(u => u.UserName == customer.Username).SingleOrDefaultAsync();
 
+                if (user.LockoutEnabled)
+                {
+                    return new TransactionStatus(false, "Cannot proceed, account is blocked, please contact Admin");
+                }
                 var getTransaction = await context.Transactions.Where(tr => tr.Id == input.TransactionId).SingleOrDefaultAsync();
                 if (getTransaction == null) return new TransactionStatus(false, "Transaction Data not Found");
                 if (getTransaction.TransactionStatus == Status.Delivered)
@@ -448,23 +490,18 @@ namespace uang_trans.GraphQL
 
                 getTransaction.TransactionStatus = Status.Delivered;
 
-                // Find the Sellers on the current Transaction
                 var sellers = context.Sellers.ToList();
                 var sellerOnTransaction = sellers.Where(x => x.TransactionId == getTransaction.Id).ToList();
 
                 foreach (var data in sellerOnTransaction)
                 {
-                    // Find the each of Seller Wallet
                     var walletSeller = context.Wallets.Where(ws => ws.CustomerId == data.SellerId).SingleOrDefault();
 
-                    // Create Object
                     var newWalletInput = new WalletInput(data.AmountSeller);
 
-                    // Not Found
+
                     if (walletSeller == null) return new TransactionStatus(false, "Wallet Not Found");
 
-                    // Data Found
-                    // Increase the Ballance of each Seller Wallet
                     walletSeller.Balance += data.AmountSeller;
 
                     var walletMutation = new WalletMutation
